@@ -7,6 +7,7 @@ from agents.gcsacbc import GCSACBCAgent
 from agents.hgcfbc import HGCFBCAgent
 from agents.hiql import HIQLAgent
 from agents.ngcsacbc import NGCSACBCAgent
+from agents.qrl import QRLAgent
 from agents.sharsa import SHARSAAgent
 
 agents = dict(
@@ -19,5 +20,6 @@ agents = dict(
     hgcfbc=HGCFBCAgent,
     hiql=HIQLAgent,
     ngcsacbc=NGCSACBCAgent,
+    qrl=QRLAgent,
     sharsa=SHARSAAgent,
 )

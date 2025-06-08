@@ -20,7 +20,9 @@ from utils.log_utils import CsvLogger, get_exp_name, get_flag_dict, get_wandb_vi
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('run_group', 'Debug', 'Run group.')
+flags.DEFINE_integer('enable_wandb', 1, 'Whether to use wandb.')
+flags.DEFINE_string('wandb_run_group', 'debug', 'Run group.')
+flags.DEFINE_string('wandb_mode', 'online', 'Wandb mode.')
 flags.DEFINE_integer('seed', 0, 'Random seed.')
 flags.DEFINE_string('env_name', 'puzzle-4x5-play-oraclerep-v0', 'Environment (dataset) name.')
 flags.DEFINE_string('dataset_dir', None, 'Dataset directory.')
@@ -47,10 +49,14 @@ config_flags.DEFINE_config_file('agent', 'agents/sharsa.py', lock_config=False)
 def main(_):
     # Set up logger.
     exp_name = get_exp_name(FLAGS.seed)
-    setup_wandb(project='horizon-reduction', group=FLAGS.run_group, name=exp_name)
-
-    FLAGS.save_dir = os.path.join(FLAGS.save_dir, wandb.run.project, FLAGS.run_group, exp_name)
+    FLAGS.save_dir = os.path.join(FLAGS.save_dir, FLAGS.wandb_run_group, exp_name)
     os.makedirs(FLAGS.save_dir, exist_ok=True)
+    if FLAGS.enable_wandb:
+        _, trigger_sync = setup_wandb(
+            wandb_output_dir=FLAGS.save_dir,
+            project='infom', group=FLAGS.wandb_run_group, name=exp_name,
+            mode=FLAGS.wandb_mode
+        )
     flag_dict = get_flag_dict()
     with open(os.path.join(FLAGS.save_dir, 'flags.json'), 'w') as f:
         json.dump(flag_dict, f)

@@ -264,60 +264,6 @@ class GCActor(nn.Module):
         return distribution
 
 
-class GCDiscreteActor(nn.Module):
-    """Goal-conditioned actor for discrete actions.
-
-    Attributes:
-        hidden_dims: Hidden layer dimensions.
-        action_dim: Action dimension.
-        mlp_class: MLP class.
-        layer_norm: Whether to apply layer normalization.
-        final_fc_init_scale: Initial scale of the final fully-connected layer.
-        gc_encoder: Optional GCEncoder module to encode the inputs.
-    """
-
-    hidden_dims: Sequence[int]
-    action_dim: int
-    mlp_class: Any = MLP
-    layer_norm: bool = False
-    final_fc_init_scale: float = 1e-2
-    gc_encoder: nn.Module = None
-
-    def setup(self):
-        self.actor_net = self.mlp_class(self.hidden_dims, activate_final=True, layer_norm=self.layer_norm)
-        self.logit_net = nn.Dense(self.action_dim, kernel_init=default_init(self.final_fc_init_scale))
-
-    def __call__(
-        self,
-        observations,
-        goals=None,
-        goal_encoded=False,
-        temperature=1.0,
-    ):
-        """Return the action distribution.
-
-        Args:
-            observations: Observations.
-            goals: Goals (optional).
-            goal_encoded: Whether the goals are already encoded.
-            temperature: Inverse scaling factor for the logits (set to 0 to get the argmax).
-        """
-        if self.gc_encoder is not None:
-            inputs = self.gc_encoder(observations, goals, goal_encoded=goal_encoded)
-        else:
-            inputs = [observations]
-            if goals is not None:
-                inputs.append(goals)
-            inputs = jnp.concatenate(inputs, axis=-1)
-        outputs = self.actor_net(inputs)
-
-        logits = self.logit_net(outputs)
-
-        distribution = distrax.Categorical(logits=logits / jnp.maximum(1e-6, temperature))
-
-        return distribution
-
-
 class GCValue(nn.Module):
     """Goal-conditioned value/critic function.
 
@@ -374,16 +320,6 @@ class GCValue(nn.Module):
             v = v.squeeze(-1)
 
         return v
-
-
-class GCDiscreteCritic(GCValue):
-    """Goal-conditioned critic for discrete actions."""
-
-    action_dim: int = None
-
-    def __call__(self, observations, goals=None, actions=None):
-        actions = jnp.eye(self.action_dim)[actions]
-        return super().__call__(observations, goals, actions)
 
 
 class GCBilinearValue(nn.Module):
@@ -451,16 +387,6 @@ class GCBilinearValue(nn.Module):
             return v, phi, psi
         else:
             return v
-
-
-class GCDiscreteBilinearCritic(GCBilinearValue):
-    """Goal-conditioned bilinear critic for discrete actions."""
-
-    action_dim: int = None
-
-    def __call__(self, observations, goals=None, actions=None, info=False):
-        actions = jnp.eye(self.action_dim)[actions]
-        return super().__call__(observations, goals, actions, info)
 
 
 class GCMRNValue(nn.Module):
