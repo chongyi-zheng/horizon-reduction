@@ -20,7 +20,7 @@ def main():
                           'rinse.cs.princeton.edu', 'spin.cs.princeton.edu']:
         log_root_dir = '/n/fs/rl-chongyiz'
         partition = None
-        account = 'allcs'
+        account = 'pnlp'
     elif cluster_name == 'neuronic.cs.princeton.edu':
         log_root_dir = '/n/fs/prl-chongyiz'
         partition = 'all'
@@ -45,9 +45,9 @@ def main():
 
     # tuning alr / clr and repr_dim didn't help for sym_infonce
     with executor.batch():  # job array
-        for env_name in ["antmaze-giant-navigate-v0"]:
+        for env_name in ["antmaze-large-navigate-v0"]:
             for seed in [1, 2, 3]:
-                exp_name = f"qrl_{env_name}_seed={seed}"
+                exp_name = f"{datetime.today().strftime('%Y%m%d')}_qrl_{env_name}/"
                 log_dir = os.path.expanduser(
                     f"{log_root_dir}/exp_logs/horizon-reduction/qrl/{exp_name}/{seed}")
 
@@ -60,7 +60,7 @@ def main():
                 cmds = f"""
                     unset PYTHONPATH;
                     source $HOME/.zshrc;
-                    conda activate ogbench;
+                    conda activate horizon-reduction;
                     which python;
                     echo $CONDA_PREFIX;
 
@@ -76,13 +76,20 @@ def main():
                     export MUJOCO_GL=egl;
                     export PYOPENGL_PLATFORM=egl;
                     export EGL_DEVICE_ID=0;
-                    source $HOME/env_vars.sh
+                    source $HOME/env_vars.sh;
+                    export D4RL_SUPPRESS_IMPORT_ERROR=1;
+                    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.mujoco/mujoco210/bin:/usr/lib/nvidia;
+                    export XLA_FLAGS=--xla_gpu_triton_gemm_any=true;
 
                     rm -rf {log_dir};
                     mkdir -p {log_dir};
-                    python $PROJECT_DIR/impls/main.py \
+                    python $PROJECT_DIR/main.py \
                         --enable_wandb=1 \
                         --env_name={env_name} \
+                        --offline_steps=1_000_000 \
+                        --log_interval=5_000 \
+                        --eval_interval=100_000 \
+                        --save_interval=1_000_000 \
                         --eval_episodes=50 \
                         --agent=agents/qrl.py \
                         --agent.alpha=0.003 \

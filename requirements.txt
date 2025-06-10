@@ -6,3 +6,5 @@ ml_collections
 matplotlib
 moviepy
 wandb
+wandb-osh
+submitit
