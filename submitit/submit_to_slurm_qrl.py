@@ -47,7 +47,7 @@ def main():
     with executor.batch():  # job array
         for env_name in ["antmaze-large-navigate-v0"]:
             for seed in [1, 2, 3]:
-                exp_name = f"{datetime.today().strftime('%Y%m%d')}_qrl_{env_name}/"
+                exp_name = f"{datetime.today().strftime('%Y%m%d')}_qrl_{env_name}_sqrt_transition_loss"
                 log_dir = os.path.expanduser(
                     f"{log_root_dir}/exp_logs/horizon-reduction/qrl/{exp_name}/{seed}")
 

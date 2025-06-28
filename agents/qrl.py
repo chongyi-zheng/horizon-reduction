@@ -70,6 +70,7 @@ class QRLAgent(flax.struct.PyTreeNode):
         dist1 = self.network.select('value')(next_ob_reps, pred_next_ob_reps, is_phi=True, params=grad_params)
         dist2 = self.network.select('value')(pred_next_ob_reps, next_ob_reps, is_phi=True, params=grad_params)
         dynamics_loss = (dist1 ** 2 + dist2 ** 2).mean() / 2
+        # dynamics_loss = (dist1 + dist2).mean() / 2
 
         return dynamics_loss, {
             'dynamics_loss': dynamics_loss,
