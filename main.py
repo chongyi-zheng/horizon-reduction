@@ -22,7 +22,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('enable_wandb', 1, 'Whether to use wandb.')
 flags.DEFINE_string('wandb_run_group', 'debug', 'Run group.')
-flags.DEFINE_string('wandb_mode', 'online', 'Wandb mode.')
+flags.DEFINE_string('wandb_mode', 'offline', 'Wandb mode.')
 flags.DEFINE_integer('seed', 0, 'Random seed.')
 flags.DEFINE_string('env_name', 'puzzle-4x5-play-oraclerep-v0', 'Environment (dataset) name.')
 flags.DEFINE_string('dataset_dir', None, 'Dataset directory.')
@@ -54,7 +54,7 @@ def main(_):
     if FLAGS.enable_wandb:
         _, trigger_sync = setup_wandb(
             wandb_output_dir=FLAGS.save_dir,
-            project='infom', group=FLAGS.wandb_run_group, name=exp_name,
+            project='horizon-reduction', group=FLAGS.wandb_run_group, name=exp_name,
             mode=FLAGS.wandb_mode
         )
     flag_dict = get_flag_dict()
@@ -119,7 +119,11 @@ def main(_):
             train_metrics['time/epoch_time'] = (time.time() - last_time) / FLAGS.log_interval
             train_metrics['time/total_time'] = time.time() - first_time
             last_time = time.time()
-            wandb.log(train_metrics, step=i)
+            if FLAGS.enable_wandb:
+                wandb.log(train_metrics, step=i)
+
+                if FLAGS.wandb_mode == 'offline':
+                    trigger_sync()
             train_logger.log(train_metrics, step=i)
 
         # Evaluate agent.
@@ -159,7 +163,11 @@ def main(_):
                 video = get_wandb_video(renders=renders, n_cols=5)
                 eval_metrics['video'] = video
 
-            wandb.log(eval_metrics, step=i)
+            if FLAGS.enable_wandb:
+                wandb.log(eval_metrics, step=i)
+
+                if FLAGS.wandb_mode == 'offline':
+                    trigger_sync()
             eval_logger.log(eval_metrics, step=i)
 
         # Save agent.

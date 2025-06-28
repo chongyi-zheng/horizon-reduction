@@ -12,19 +12,23 @@ def main():
         log_root_dir = '/home/cz8792/network'
         partition = 'gpu'
         account = None
+        exclude = None
     elif cluster_name == 'della':
         log_root_dir = '/home/cz8792/gpfs'
         partition = 'gpu-test'
         account = None
+        exclude = None
     elif cluster_name in ['soak.cs.princeton.edu', 'wash.cs.princeton.edu',
                           'rinse.cs.princeton.edu', 'spin.cs.princeton.edu']:
         log_root_dir = '/n/fs/rl-chongyiz'
         partition = None
         account = 'pnlp'
+        exclude = None
     elif cluster_name == 'neuronic.cs.princeton.edu':
         log_root_dir = '/n/fs/prl-chongyiz'
         partition = 'all'
         account = None
+        exclude = 'neu301'
     else:
         raise NotImplementedError
 
@@ -39,6 +43,7 @@ def main():
         slurm_cpus_per_task=8,
         slurm_mem="16G",
         slurm_gpus_per_node=1,
+        slurm_exclude=exclude,
         slurm_stderr_to_stdout=True,
         slurm_array_parallelism=10,
     )
@@ -63,14 +68,14 @@ def main():
                         conda activate horizon-reduction;
                         which python;
                         echo $CONDA_PREFIX;
-    
+
                         echo job_id: $SLURM_ARRAY_JOB_ID;
                         echo task_id: $SLURM_ARRAY_TASK_ID;
                         squeue -j $SLURM_JOB_ID -o "%.18i %.9P %.8j %.8u %.2t %.6D %.5C %.11m %.11l %.12N";
                         echo seed: {seed};
-    
+
                         export PROJECT_DIR=$PWD;
-                        export PYTHONPATH=$HOME/research/horizon-reduction;
+                        export PYTHONPATH=$PROJECT_DIR;
                         export PATH="$PATH":"$CONDA_PREFIX"/bin;
                         export CUDA_VISIBLE_DEVICES=0;
                         export MUJOCO_GL=egl;
@@ -80,13 +85,13 @@ def main():
                         export D4RL_SUPPRESS_IMPORT_ERROR=1;
                         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.mujoco/mujoco210/bin:/usr/lib/nvidia;
                         export XLA_FLAGS=--xla_gpu_triton_gemm_any=true;
-    
+
                         rm -rf {log_dir};
                         mkdir -p {log_dir};
                         python $PROJECT_DIR/main.py \
-                            --enable_wandb=0 \
+                            --enable_wandb=1 \
                             --env_name={env_name} \
-                            --dataset_dir=/home/cz8792/gpfs/datasets/horizon-reduction/{dataset_name}
+                            --dataset_dir={log_root_dir}/datasets/horizon-reduction/{dataset_name} \
                             --dataset_replace_interval=1000 \
                             --agent=agents/sharsa.py \
                             --agent.q_agg=min \
@@ -97,7 +102,7 @@ def main():
                             --seed={seed} \
                             --save_dir={log_dir} \
                         2>&1 | tee {log_dir}/stream.log;
-    
+
                         export SUBMITIT_RECORD_FILENAME={log_dir}/submitit_"$SLURM_ARRAY_JOB_ID"_"$SLURM_ARRAY_TASK_ID".txt;
                         echo "{submitit_log_dir}/"$SLURM_ARRAY_JOB_ID"_"$SLURM_ARRAY_TASK_ID"_submitted.pkl" >> "$SUBMITIT_RECORD_FILENAME";
                         echo "{submitit_log_dir}/"$SLURM_ARRAY_JOB_ID"_submission.sh" >> "$SUBMITIT_RECORD_FILENAME";
