@@ -85,6 +85,11 @@ def main(_):
     train_dataset = dataset_class(Dataset.create(**train_dataset), config)
     val_dataset = dataset_class(Dataset.create(**val_dataset), config)
 
+    if config['agent_name'] in ['fdrl']:
+        for dataset in [train_dataset, val_dataset]:
+            if dataset is not None:
+                dataset.dataset.return_next_actions = True
+
     example_batch = train_dataset.sample(1)
 
     agent_class = agents[config['agent_name']]

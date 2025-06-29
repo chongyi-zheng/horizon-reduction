@@ -507,6 +507,62 @@ class GCIQEValue(nn.Module):
             return v
 
 
+class ValueVectorField(nn.Module):
+    """Value vector field network for flow matching.
+
+    Attributes:
+        hidden_dims: Hidden layer dimensions.
+        value_dim: Value dimension.
+        layer_norm: Whether to apply layer normalization.
+        encoder: Optional encoder module to encode the inputs.
+    """
+
+    hidden_dims: Sequence[int]
+    value_dim: int = 1
+    layer_norm: bool = False
+    num_ensembles: int = 1
+    gc_encoder: nn.Module = None
+
+    def setup(self) -> None:
+        mlp_class = MLP
+        if self.num_ensembles > 1:
+            mlp_class = ensemblize(mlp_class, self.num_ensembles)
+        value_net = mlp_class((*self.hidden_dims, 1), activate_final=False, layer_norm=self.layer_norm)
+
+        self.value_net = value_net
+
+    @nn.compact
+    def __call__(self, returns, times, observations, goals=None, actions=None, is_encoded=False):
+        """Return the vectors at the given states, actions, and times.
+
+        Args:
+            returns: Returns.
+            times: Times.
+            observations: Observations.
+            actions: Actions.
+            is_encoded: Whether the observations are already encoded.
+        """
+        if not is_encoded and self.gc_encoder is not None:
+            if goals is None:
+                obs_goals = self.gc_encoder(observations)
+            else:
+                obs_goals = self.gc_encoder(observations, goals)
+        else:
+            if goals is None:
+                obs_goals = observations
+            else:
+                obs_goals = jnp.concatenate([observations, goals], axis=-1)
+
+        if actions is None:
+            inputs = jnp.concatenate([returns, obs_goals, times], axis=-1)
+        else:
+            inputs = jnp.concatenate([returns, obs_goals, actions, times], axis=-1)
+
+        v = self.value_net(inputs)
+
+        return v
+
+
 class ActorVectorField(nn.Module):
     """Actor vector field for flow policies.
 

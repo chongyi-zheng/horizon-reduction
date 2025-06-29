@@ -38,6 +38,7 @@ class Dataset(FrozenDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.size = get_size(self._dict)
+        self.return_next_actions = False  # Whether to additionally return next actions; set outside the class.
         if 'valids' in self._dict:
             (self.valid_idxs,) = np.nonzero(self['valids'] > 0)
 
@@ -63,6 +64,9 @@ class Dataset(FrozenDict):
         result = jax.tree_util.tree_map(lambda arr: arr[idxs], self._dict)
         if 'next_observations' not in result:
             result['next_observations'] = self._dict['observations'][np.minimum(idxs + 1, self.size - 1)]
+        if self.return_next_actions:
+            # WARNING: This is incorrect at the end of the trajectory. Use with caution.
+            result['next_actions'] = self._dict['actions'][np.minimum(idxs + 1, self.size - 1)]
         return result
 
 
