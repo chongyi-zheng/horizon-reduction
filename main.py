@@ -92,6 +92,16 @@ def main(_):
 
     example_batch = train_dataset.sample(1)
 
+    assert 'gc_negative' in config
+    example_batch['min_reward'] = - (1.0 if config['gc_negative'] else 0.0)
+    example_batch['max_reward'] = 1.0 - (1.0 if config['gc_negative'] else 0.0)
+    assert example_batch['min_reward'] <= example_batch['max_reward']
+
+    assert 'oracle_reps' in train_dataset.dataset
+    example_batch['min_high_goal'] = np.min(train_dataset.dataset['oracle_reps'], axis=0)
+    example_batch['max_high_goal'] = np.max(train_dataset.dataset['oracle_reps'], axis=0)
+    assert np.all(example_batch['min_high_goal'] <= example_batch['max_high_goal'])
+
     agent_class = agents[config['agent_name']]
     agent = agent_class.create(
         FLAGS.seed,
@@ -186,6 +196,10 @@ def main(_):
             )
             train_dataset = dataset_class(Dataset.create(**train_dataset), config)
             val_dataset = dataset_class(Dataset.create(**val_dataset), config)
+            if config['agent_name'] in ['fdrl']:
+                for dataset in [train_dataset, val_dataset]:
+                    if dataset is not None:
+                        dataset.dataset.return_next_actions = True
 
     train_logger.close()
     eval_logger.close()

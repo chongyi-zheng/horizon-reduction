@@ -284,7 +284,7 @@ class HGCDataset(GCDataset):
 
         return idxs + subgoal_steps, subgoal_steps
 
-    def get_high_actions(self, target_idxs, cur_idxs):
+    def get_high_actions(self, target_idxs):
         if 'oracle_reps' in self.dataset:
             return self.dataset['oracle_reps'][target_idxs]
         else:
@@ -317,17 +317,25 @@ class HGCDataset(GCDataset):
             high_value_goal_idxs,
             value_subgoal_steps,
         )
+        high_value_2_step_idxs, _ = self.compute_high_next_idxs(
+            high_value_next_idxs,
+            final_state_idxs,
+            high_value_goal_idxs,
+            value_subgoal_steps,
+        )
 
         if 'oracle_reps' in self.dataset:
             batch['high_value_reps'] = self.dataset['oracle_reps'][idxs]
             batch['high_value_goals'] = self.dataset['oracle_reps'][high_value_goal_idxs]
-            batch['high_value_actions'] = self.get_high_actions(high_value_next_idxs, idxs)
+            batch['high_value_actions'] = self.get_high_actions(high_value_next_idxs)
             batch['high_value_next_observations'] = self.get_observations(high_value_next_idxs)
+            batch['high_value_next_actions'] = self.get_high_actions(high_value_2_step_idxs)
         else:
             batch['high_value_reps'] = batch['observations']
             batch['high_value_goals'] = self.get_observations(high_value_goal_idxs)
-            batch['high_value_actions'] = self.get_high_actions(high_value_next_idxs, idxs)
+            batch['high_value_actions'] = self.get_high_actions(high_value_next_idxs)
             batch['high_value_next_observations'] = self.get_observations(high_value_next_idxs)
+            batch['high_value_next_actions'] = self.get_high_actions(high_value_2_step_idxs)
         batch['high_value_offsets'] = high_value_goal_idxs - idxs
 
         high_value_successes = (high_value_subgoal_steps < value_subgoal_steps).astype(float)
@@ -386,16 +394,16 @@ class HGCDataset(GCDataset):
 
         if 'oracle_reps' in self.dataset:
             batch['high_actor_goals'] = self.dataset['oracle_reps'][high_actor_goal_idxs]
-            batch['high_actor_actions'] = self.get_high_actions(high_actor_next_idxs, idxs)
+            batch['high_actor_actions'] = self.get_high_actions(high_actor_next_idxs)
             batch['high_actor_next_observations'] = self.get_observations(high_actor_next_idxs)
         else:
             batch['high_actor_goals'] = self.get_observations(high_actor_goal_idxs)
-            batch['high_actor_actions'] = self.get_high_actions(high_actor_next_idxs, idxs)
+            batch['high_actor_actions'] = self.get_high_actions(high_actor_next_idxs)
             batch['high_actor_next_observations'] = self.get_observations(high_actor_next_idxs)
 
         # Compute low-level actor goals.
         low_actor_goal_idxs = np.minimum(idxs + actor_subgoal_steps, final_state_idxs)
 
-        batch['low_actor_goals'] = self.get_high_actions(low_actor_goal_idxs, idxs)
+        batch['low_actor_goals'] = self.get_high_actions(low_actor_goal_idxs)
 
         return batch
